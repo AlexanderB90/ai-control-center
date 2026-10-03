@@ -4,6 +4,9 @@ import { useEffect, useState } from "react";
 
 export default function Home() {
   const [backendOnline, setBackendOnline] = useState(false);
+  const [researchTask, setResearchTask] = useState("");
+  const [researchResult, setResearchResult] = useState("");
+  const [researchRunning, setResearchRunning] = useState(false);
 
   useEffect(() => {
     const checkBackend = async () => {
@@ -26,6 +29,35 @@ export default function Home() {
 
     return () => clearInterval(interval);
   }, []);
+
+  const runResearchAgent = async () => {
+    if (!researchTask.trim()) {
+      return;
+    }
+
+    setResearchRunning(true);
+    setResearchResult("");
+
+    try {
+      const response = await fetch(
+        `http://localhost:8000/agents/research/run?task=${encodeURIComponent(
+          researchTask
+        )}`
+      );
+
+      if (!response.ok) {
+        throw new Error("Research Agent request failed");
+      }
+
+      const data = await response.json();
+
+      setResearchResult(data.response);
+    } catch {
+      setResearchResult("Could not connect to Research Agent.");
+    } finally {
+      setResearchRunning(false);
+    }
+  };
 
   return (
     <main className="min-h-screen bg-zinc-950 text-white">
@@ -78,7 +110,7 @@ export default function Home() {
 
             <StatusCard
               title="Agents"
-              value="0 Active"
+              value="1 Active"
               status="Ready"
               online={true}
             />
@@ -108,21 +140,81 @@ export default function Home() {
             </button>
           </div>
 
-          <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-            <AgentCard
-              name="Research Agent"
-              description="Researches topics, sources and documents."
-            />
+          <div className="grid gap-5 lg:grid-cols-3">
+            {/* Research Agent */}
+            <div className="rounded-xl border border-blue-500/30 bg-zinc-900 p-6 lg:col-span-2">
+              <div className="mb-5 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-500/10 text-blue-400">
+                    AI
+                  </div>
 
-            <AgentCard
-              name="Market Analyst"
-              description="Analyzes stocks, markets and financial data."
-            />
+                  <div>
+                    <h3 className="text-lg font-semibold">
+                      Research Agent
+                    </h3>
 
-            <AgentCard
-              name="Options Specialist"
-              description="Evaluates options strategies, risk and opportunities."
-            />
+                    <p className="text-sm text-zinc-500">
+                      Researches topics, sources and documents.
+                    </p>
+                  </div>
+                </div>
+
+                <span className="text-xs text-green-400">
+                  ● Ready
+                </span>
+              </div>
+
+              <textarea
+                value={researchTask}
+                onChange={(event) => setResearchTask(event.target.value)}
+                placeholder="Give Research Agent a task, e.g. Analyze Netflix..."
+                className="min-h-28 w-full resize-none rounded-lg border border-zinc-700 bg-zinc-950 p-4 text-sm text-white outline-none transition placeholder:text-zinc-600 focus:border-blue-500"
+              />
+
+              <div className="mt-4 flex items-center justify-between">
+                <p className="text-xs text-zinc-500">
+                  Connected to FastAPI
+                </p>
+
+                <button
+                  onClick={runResearchAgent}
+                  disabled={
+                    researchRunning ||
+                    !researchTask.trim() ||
+                    !backendOnline
+                  }
+                  className="rounded-lg bg-blue-600 px-5 py-2 text-sm font-medium transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  {researchRunning ? "Running..." : "Run Agent"}
+                </button>
+              </div>
+
+              {researchResult && (
+                <div className="mt-5 rounded-lg border border-zinc-800 bg-zinc-950 p-4">
+                  <p className="mb-2 text-xs font-medium uppercase tracking-wider text-zinc-500">
+                    Agent Response
+                  </p>
+
+                  <p className="text-sm leading-6 text-zinc-300">
+                    {researchResult}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Other agents */}
+            <div className="space-y-5">
+              <AgentCard
+                name="Market Analyst"
+                description="Analyzes stocks, markets and financial data."
+              />
+
+              <AgentCard
+                name="Options Specialist"
+                description="Evaluates options strategies, risk and opportunities."
+              />
+            </div>
           </div>
         </section>
       </div>
