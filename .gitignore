@@ -1,0 +1,40 @@
+# Secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Node
+node_modules/
+.next/
+dist/
+build/
+
+# VS Code / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Local data and databases
+data/
+storage/
+backups/
+*.db
+*.sqlite
+*.sqlite3
+
+# Docker local overrides
+docker-compose.override.yml
+compose.override.yml
