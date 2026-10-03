@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from backend.agents.research_agent import research_agent
 
 app = FastAPI(
     title="AI Control Center API",
@@ -23,3 +24,8 @@ def health_check():
         "service": "AI Control Center",
         "version": "0.1.0"
     }
+
+
+@app.get("/agents/research/run")
+def run_research_agent(task: str):
+    return research_agent.run(task)
