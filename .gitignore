@@ -28,6 +28,7 @@ Thumbs.db
 logs/
 
 # Local data and databases
+backend/data/
 data/
 storage/
 backups/

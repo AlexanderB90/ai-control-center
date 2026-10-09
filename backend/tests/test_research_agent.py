@@ -11,6 +11,7 @@ from unittest.mock import patch
 
 from backend.agents.research_agent import AgentError, NOTICE, ResearchAgent, command, log_failure
 from backend.main import app
+from backend import history
 
 
 class ResearchTests(unittest.TestCase):
@@ -173,6 +174,16 @@ async def request(method, path, body=None):
 
 
 class EndpointTests(unittest.TestCase):
+    def setUp(self):
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        database = patch('backend.history.DATABASE_PATH', Path(temporary.name) / 'data' / 'history.sqlite3')
+        database.start()
+        self.addCleanup(database.stop)
+        runner = patch('backend.main.research_agent.run', side_effect=AssertionError('Real Codex forbidden in endpoint tests'))
+        runner.start()
+        self.addCleanup(runner.stop)
+
     def test_validation_and_get_removed(self):
         with patch('backend.main.research_agent.run') as run:
             for body in [{}, {'task': ''}, {'task': '   '}, {'task': 1}, {'task': 'x'*10001}, {'task': 'ok', 'extra': True}]:

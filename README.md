@@ -20,7 +20,28 @@ AI Control Center is a modular platform for running and managing specialized AI 
 
 ## Status
 
-Early development - v0.2
+Early development - v0.3
+
+## Opgavehistorik i v0.3
+
+Gennemførte Research Agent-opgaver gemmes automatisk med UUID, UTC-tidspunkt,
+agentnavn og runner-version i `backend/data/history.sqlite3`. Stien er relativ
+til backendens placering og afhænger ikke af terminalens arbejdsmappe.
+Database og tabel oprettes ved første brug. Opgaver og fulde svar gemmes lokalt
+i **klartekst**. Databasefolderen er ignoreret i Git og følger ikke med til GitHub.
+
+Dashboardets historik under agentkortene viser de seneste 50 opgaver, nyeste
+først. Åbn en gemt opgave for at se fuld opgave og svar uden at ændre den
+aktive opgave. Historikken hentes ved åbning og efter et vellykket AI-kald.
+Hvis lagring fejler, vises agentsvaret stadig med en særskilt advarsel;
+AI-kaldet genkøres aldrig automatisk.
+
+`POST /agents/research/run` bevarer svarfelterne og tilføjer kun
+`history_warning`, hvis lagring fejler. `GET /agents/research/history` returnerer
+metadata og opgaveuddrag (højst 160 tegn), og
+`GET /agents/research/history/{id}` returnerer fuld opgave og svar.
+Ukendte IDer giver 404; databasefejl ved læsning giver 503 med en fast dansk besked.
+Platformversionen er 0.3.0; Research Agent er fortsat 0.2.0, da runneren er uændret.
 
 ## Research Agent v0.2 (lokal)
 
@@ -56,7 +77,8 @@ npm run dev -- --hostname 127.0.0.1 --port 3000
 Åbn http://localhost:3000. Ved loginfejl: kør `codex login` i en terminal
 som samme bruger som backend, og vælg ChatGPT-login.
 
-Tests bruger en simuleret Codex-proces uden AI-kald:
+Tests bruger midlertidige databaser og en simuleret eller mocket Codex-proces
+uden rigtige AI-kald og uden at skrive i brugerens historik:
 
 ```bash
 cd /home/alex/ai-control-center

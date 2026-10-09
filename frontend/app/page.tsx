@@ -2,11 +2,56 @@
 
 import { useEffect, useState } from "react";
 
+type HistoryItem = { id: string; created_at: string; agent: string; version: string; task_excerpt: string };
+type HistoryDetail = { id: string; created_at: string; agent: string; version: string; task: string; response: string };
+
+async function fetchHistory(): Promise<HistoryItem[]> {
+  const response = await fetch("http://localhost:8000/agents/research/history", { cache: "no-store" });
+  if (!response.ok) throw new Error("Historikken kunne ikke indlæses. Prøv igen senere.");
+  return response.json();
+}
+
 export default function Home() {
   const [backendOnline, setBackendOnline] = useState(false);
   const [researchTask, setResearchTask] = useState("");
   const [researchResult, setResearchResult] = useState("");
   const [researchRunning, setResearchRunning] = useState(false);
+  const [historyWarning, setHistoryWarning] = useState("");
+  const [history, setHistory] = useState<HistoryItem[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(true);
+  const [historyError, setHistoryError] = useState("");
+  const [historyDetail, setHistoryDetail] = useState<HistoryDetail | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailError, setDetailError] = useState("");
+
+  useEffect(() => {
+    let active = true;
+    fetchHistory().then((items) => { if (active) setHistory(items); })
+      .catch(() => { if (active) setHistoryError("Historikken kunne ikke indlæses. Prøv igen senere."); })
+      .finally(() => { if (active) setHistoryLoading(false); });
+    return () => { active = false; };
+  }, []);
+
+  const refreshHistory = async () => {
+    setHistoryLoading(true);
+    setHistoryError("");
+    try { setHistory(await fetchHistory()); }
+    catch { setHistoryError("Historikken kunne ikke indlæses. Prøv igen senere."); }
+    finally { setHistoryLoading(false); }
+  };
+
+  const openHistory = async (id: string) => {
+    setDetailLoading(true);
+    setDetailError("");
+    setHistoryDetail(null);
+    try {
+      const response = await fetch(`http://localhost:8000/agents/research/history/${encodeURIComponent(id)}`, { cache: "no-store" });
+      if (!response.ok) throw new Error(response.status === 404 ? "Opgaven blev ikke fundet i historikken." : "Den gemte opgave kunne ikke indlæses. Prøv igen senere.");
+      setHistoryDetail(await response.json());
+    } catch (error) {
+      setDetailError(error instanceof Error && !(error instanceof TypeError) ? error.message : "Den gemte opgave kunne ikke indlæses. Prøv igen senere.");
+    } finally { setDetailLoading(false); }
+  };
 
   useEffect(() => {
     const checkBackend = async () => {
@@ -37,6 +82,7 @@ export default function Home() {
 
     setResearchRunning(true);
     setResearchResult("");
+    setHistoryWarning("");
 
     try {
       const response = await fetch(
@@ -54,6 +100,8 @@ export default function Home() {
       }
 
       setResearchResult(data.response);
+      setHistoryWarning(typeof data.history_warning === "string" ? data.history_warning : "");
+      await refreshHistory();
     } catch (error) {
       setResearchResult(error instanceof Error && !(error instanceof TypeError) ? error.message : "Kunne ikke forbinde til Research Agent.");
     } finally {
@@ -119,7 +167,7 @@ export default function Home() {
 
             <StatusCard
               title="Version"
-              value="v0.2.0"
+              value="v0.3.0"
               status="Development"
               online={true}
             />
@@ -204,6 +252,7 @@ export default function Home() {
                   </p>
                 </div>
               )}
+              {historyWarning && <p role="alert" className="mt-4 text-sm text-amber-400">{historyWarning}</p>}
             </div>
 
             {/* Other agents */}
@@ -219,6 +268,33 @@ export default function Home() {
               />
             </div>
           </div>
+        </section>
+        <section className="mt-12 rounded-xl border border-zinc-800 bg-zinc-900 p-6">
+          <div className="mb-5 flex items-center justify-between">
+            <h2 className="text-xl font-semibold">Opgavehistorik</h2>
+            <button onClick={refreshHistory} disabled={historyLoading} className="text-sm text-blue-400 disabled:opacity-40">Opdatér historik</button>
+          </div>
+          <p className="mb-4 text-sm text-zinc-500">De seneste 50 opgaver. Opgaver og svar gemmes lokalt i klartekst.</p>
+          {historyLoading && <p role="status" className="text-sm text-zinc-400">Indlæser historik…</p>}
+          {historyError && <p role="alert" className="text-sm text-red-400">{historyError}</p>}
+          {!historyLoading && !historyError && history.length === 0 && <p className="text-sm text-zinc-400">Ingen gemte opgaver endnu.</p>}
+          <ul className="space-y-3">
+            {history.map((item) => <li key={item.id} className="rounded-lg border border-zinc-800 bg-zinc-950 p-4">
+              <p className="text-xs text-zinc-500">{new Date(item.created_at).toLocaleString("da-DK")} · {item.agent} v{item.version}</p>
+              <p className="my-2 whitespace-pre-wrap break-words text-sm text-zinc-300">{item.task_excerpt}</p>
+              <button onClick={() => openHistory(item.id)} disabled={detailLoading} className="text-sm text-blue-400 disabled:opacity-40">Åbn opgave og svar</button>
+            </li>)}
+          </ul>
+          {detailLoading && <p role="status" className="mt-5 text-sm text-zinc-400">Indlæser gemt opgave…</p>}
+          {detailError && <p role="alert" className="mt-5 text-sm text-red-400">{detailError}</p>}
+          {historyDetail && <div className="mt-5 rounded-lg border border-blue-500/30 bg-zinc-950 p-4">
+            <h3 className="font-semibold">Gemt opgave</h3>
+            <p className="mt-2 text-xs text-zinc-500">{new Date(historyDetail.created_at).toLocaleString("da-DK")} · {historyDetail.agent} v{historyDetail.version}</p>
+            <p className="mt-3 whitespace-pre-wrap break-words text-sm text-zinc-300">{historyDetail.task}</p>
+            <h3 className="mt-5 font-semibold">Gemt svar</h3>
+            <p className="mt-3 whitespace-pre-wrap break-words text-sm leading-6 text-zinc-300">{historyDetail.response}</p>
+            <button onClick={() => setHistoryDetail(null)} className="mt-4 text-sm text-blue-400">Luk gemt opgave</button>
+          </div>}
         </section>
       </div>
     </main>
