@@ -40,20 +40,22 @@ export default function Home() {
 
     try {
       const response = await fetch(
-        `http://localhost:8000/agents/research/run?task=${encodeURIComponent(
-          researchTask
-        )}`
+        "http://localhost:8000/agents/research/run",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ task: researchTask.trim() }),
+        }
       );
 
+      const data = await response.json();
       if (!response.ok) {
-        throw new Error("Research Agent request failed");
+        throw new Error(typeof data.detail === "string" ? data.detail : "Opgaven skal indeholde 1–10.000 tegn.");
       }
 
-      const data = await response.json();
-
       setResearchResult(data.response);
-    } catch {
-      setResearchResult("Could not connect to Research Agent.");
+    } catch (error) {
+      setResearchResult(error instanceof Error && !(error instanceof TypeError) ? error.message : "Kunne ikke forbinde til Research Agent.");
     } finally {
       setResearchRunning(false);
     }
@@ -117,7 +119,7 @@ export default function Home() {
 
             <StatusCard
               title="Version"
-              value="v0.1.0"
+              value="v0.2.0"
               status="Development"
               online={true}
             />
@@ -155,7 +157,7 @@ export default function Home() {
                     </h3>
 
                     <p className="text-sm text-zinc-500">
-                      Researches topics, sources and documents.
+                      Bruger Codex/ChatGPT. Henter ikke aktuelle oplysninger fra internettet.
                     </p>
                   </div>
                 </div>
@@ -166,6 +168,7 @@ export default function Home() {
               </div>
 
               <textarea
+                maxLength={10000}
                 value={researchTask}
                 onChange={(event) => setResearchTask(event.target.value)}
                 placeholder="Give Research Agent a task, e.g. Analyze Netflix..."
@@ -174,7 +177,7 @@ export default function Home() {
 
               <div className="mt-4 flex items-center justify-between">
                 <p className="text-xs text-zinc-500">
-                  Connected to FastAPI
+                  Codex/ChatGPT via lokal FastAPI
                 </p>
 
                 <button
@@ -196,7 +199,7 @@ export default function Home() {
                     Agent Response
                   </p>
 
-                  <p className="text-sm leading-6 text-zinc-300">
+                  <p className="whitespace-pre-wrap break-words text-sm leading-6 text-zinc-300">
                     {researchResult}
                   </p>
                 </div>

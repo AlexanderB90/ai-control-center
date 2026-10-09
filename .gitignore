@@ -38,3 +38,6 @@ backups/
 # Docker local overrides
 docker-compose.override.yml
 compose.override.yml
+
+# Local Research Agent execution lock
+backend/.research-agent.lock
