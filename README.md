@@ -22,6 +22,47 @@ AI Control Center is a modular platform for running and managing specialized AI 
 
 Early development - v0.3
 
+## Start med én kommando (Ubuntu/WSL)
+
+Stop først eventuelle manuelt startede backend- og frontendservere med Ctrl+C
+i deres respektive terminaler. Start derefter fra projektmappen:
+
+```bash
+cd /home/alex/ai-control-center
+python3 dev.py
+```
+
+Begge servere starter i samme terminal og lytter kun på 127.0.0.1.
+Vent på Uvicorns opstart og Next.js' Ready-melding, og åbn
+http://localhost:3000. Lad terminalen være åben; Ctrl+C stopper begge.
+Hvis én server afslutter, stopper startfilen også den anden.
+Startfilen ændrer ikke agenten, login eller historikdatabasen.
+
+Kræver den eksisterende .venv med backendpakker, frontend/node_modules,
+Node.js, npm og Codex i Ubuntu-terminalens PATH. Startfilen installerer
+ikke pakker og kontrollerer ikke Codex-login. Ved manglende miljø kan det
+oprettes fra projektmappen med python3 -m venv .venv, hvorefter backendpakker
+installeres med .venv/bin/python -m pip install -r backend/requirements.txt.
+Frontendpakker installeres med npm ci i frontend-mappen.
+
+Kontrollér kun opsætning og ledige porte, uden at starte serverne:
+
+```bash
+python3 dev.py --check
+```
+
+Hvis port 3000 eller 8000 er optaget, afslutter startfilen med en dansk
+besked. Den stopper ikke andre processer og vælger ikke en anden port.
+Loglinjer fra begge servere vises i terminalen.
+Dette er lokal udviklingsstart, ikke en permanent serverinstallation.
+Afslut helst en igangværende agentopgave, før du stopper serverne.
+
+Manuel kontrol af startfilen:
+1. Med de gamle servere kørende: --check skal afvise de optagede porte.
+2. Stop dem, kør --check igen, og start med python3 dev.py.
+3. Kontrollér dashboard, /health og at eksisterende historik kan åbnes.
+4. Tryk Ctrl+C, og kør --check igen: begge porte skal være ledige.
+
 ## Opgavehistorik i v0.3
 
 Gennemførte Research Agent-opgaver gemmes automatisk med UUID, UTC-tidspunkt,
