@@ -46,6 +46,29 @@ class CalculationTests(unittest.TestCase):
         self.assertEqual(rows["98.05"]["total_pl"], "0.00")
         self.assertEqual(rows["105.00"]["assignment"], "Usikker ved strike")
 
+    def test_nflx_put_scenarios_match_displayed_prices(self):
+        c = result(strategy="cash_secured_put", spot="70.37", strike="64",
+                   premium="1.05", fees="11.72", cash_available="20000")
+        rows = {r["price"]: r for r in c["scenarios"]}
+        self.assertEqual(c["calculation_version"], "0.1.1")
+        self.assertEqual(c["break_even"], "63.07")
+        self.assertEqual(rows["63.07"]["total_pl"], "0.28")
+        self.assertEqual(rows["35.19"]["total_pl"], "-2787.72")
+        self.assertEqual(rows["56.30"]["total_pl"], "-676.72")
+        for price, row in rows.items():
+            expected = Decimal("93.28") - max(Decimal("64") - Decimal(price), Decimal("0")) * 100
+            self.assertEqual(Decimal(row["total_pl"]), expected)
+
+    def test_call_rounding_and_duplicate_scenarios(self):
+        c = result(spot="100.001", strike="105", premium="0", fees="0",
+                   cost_basis="100.002")
+        prices = [r["price"] for r in c["scenarios"]]
+        self.assertEqual(len(prices), len(set(prices)))
+        rows = {r["price"]: r for r in c["scenarios"]}
+        self.assertEqual(rows["100.00"]["total_pl"], "-0.10")
+        self.assertEqual(rows["100.00"]["cost_basis_pl"], "-0.20")
+        self.assertEqual(rows["100.00"]["hold_shares_pl"], "-0.10")
+
     def test_cash_secured_put(self):
         c = result(strategy="cash_secured_put", strike="90", cost_basis=None,
                    shares_owned=0, cash_available="9005")
