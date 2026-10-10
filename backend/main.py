@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from backend.agents.research_agent import AgentError, research_agent
 from backend import history
 from backend.options_routes import router as options_router
+from backend.chat import router as chat_router
 
 app = FastAPI(
     title="AI Control Center API",
@@ -70,3 +71,5 @@ def research_history_detail(identifier: str):
 
 
 app.include_router(options_router)
+
+app.include_router(chat_router)
