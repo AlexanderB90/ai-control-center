@@ -38,17 +38,17 @@ def save(task: str, response: str, agent: str, version: str):
     return identifier
 
 
-def recent():
+def recent(agent: str = 'Research Agent'):
     with connection() as database:
         rows = database.execute('''SELECT id, created_at, agent, version,
             substr(task, 1, 160) AS task_excerpt
-            FROM research_history ORDER BY created_at DESC, rowid DESC LIMIT 50''').fetchall()
+            FROM research_history WHERE agent = ? ORDER BY created_at DESC, rowid DESC LIMIT 50''', (agent,)).fetchall()
     return [dict(row) for row in rows]
 
 
-def detail(identifier: str):
+def detail(identifier: str, agent: str = 'Research Agent'):
     with connection() as database:
         row = database.execute(
-            'SELECT * FROM research_history WHERE id = ?', (identifier,),
+            'SELECT * FROM research_history WHERE id = ? AND agent = ?', (identifier, agent),
         ).fetchone()
     return dict(row) if row else None

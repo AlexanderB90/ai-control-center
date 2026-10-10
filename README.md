@@ -20,7 +20,7 @@ AI Control Center is a modular platform for running and managing specialized AI 
 
 ## Status
 
-Early development - v0.3
+Early development - v0.4
 
 ## Start med én kommando (Ubuntu/WSL)
 
@@ -135,3 +135,82 @@ OpenAI-login påkrævet, ChatGPT-login tvunget og begge retry-grænser sat til n
 Ubegrænsede forbindelses-retries er også slået fra. Fejl logges lokalt med
 exitkode og faste danske fejlbeskrivelser; rå stdout/stderr, opgaver og
 credentials logges aldrig. Slutsvaret læses kun fra `--output-last-message`.
+
+## Options Agent — platform v0.4
+
+Options Agent v0.1 beregner covered calls og cash-secured puts med manuelt
+indtastede oplysninger. Ingen Saxo-forbindelse eller ordreafgivelse.
+Kun ujusterede, fysisk leverede aktieoptioner understøttes; ingen indeksoptioner,
+spreads eller 0DTE. Alle beløb skal være i samme valuta.
+
+Dashboardet har to handlinger:
+- **Beregn**: deterministiske Decimal-beregninger i Python, uden AI eller lagring.
+- **Beregn + AI-vurdering**: samme beregninger plus en dansk vurdering via det
+  eksisterende Codex/ChatGPT-login. Handelsoplysninger og beregninger sendes til
+  AI-modellen. Input, beregninger og svar gemmes lokalt i klartekst i den eksisterende
+  Git-udelukkede SQLite-database. Research- og optionshistorik vises hver for sig.
+
+AI-vurderingen tager højde for målet (præmieindtægt, beholde, sælge eller købe
+aktier), men verificerer ikke de indtastede data. Kurser, nyheder, regnskab,
+ex-udbytte, likviditet, spread, IV og Greeks hentes ikke. Brugeren træffer beslutningen.
+Begge agenter bruger samme proceslås, timeout og begrænsede runner.
+Ved AI-fejl bevares beregningen; ved lagringsfejl vises en særskilt advarsel.
+Ingen automatisk gentagelse af AI-kald.
+
+### Input og beregninger
+
+Præmien indtastes **pr. aktie**, ikke pr. kontrakt. Kontraktstørrelsen skal
+kontrolleres. Gebyrer er et fast samlet skøn for hele handlen, inklusive eventuel
+tildeling. Kurstidspunkt og datakilde gemmes med vurderingen; data over 24 timer
+gamle markeres. Fiktive eksempeldata skal vælges eksplicit.
+
+Lad N = kontrakter × aktier pr. kontrakt og P = præmie × N − samlede gebyrer.
+Ved udløbskurs S og strike K:
+- Covered call, resultat fra dagens kurs S0:
+  (S − S0) × N + P − max(S − K, 0) × N.
+- Cash-secured put: P − max(K − S, 0) × N.
+- Covered call viser også resultat fra den oplyste købspris samt aktier uden call.
+- Break-even vises kun, hvis den kan nås på payoff-kurven.
+- Fra beregningsversion 0.1.1 afrundes scenariekurser til to decimaler før
+  resultatberegning, så resultatet svarer til den viste kurs. Break-even er
+  fortsat afrundet og kan derfor give et lille plus/minus ved den viste kurs.
+  Eksisterende historik er uændrede snapshots; rettelsen gælder nye beregninger.
+- Cash-secured puts kræver frie kontanter på mindst K × N + gebyrer;
+  den forventede præmie tælles ikke som forhåndsdækning.
+- Kun de kontraktdækkede aktier medregnes. Maksimalt tab inkluderer kursfald til nul.
+- Nettopræmieprocent er ikke forventet samlet afkast og annualiseres ikke.
+- Skat, valutaændringer, udbytte, renter og tidligere præmier er udeladt.
+  Førtidig tildeling og faktisk udførelsespris kan ændre forløbet.
+
+Fiktiv kontrol: 100 aktier, kurs 100, købspris 95, call-strike 105,
+præmie 2 pr. aktie og gebyrer 5 giver nettopræmie 195.
+Bedste udløbsresultat fra dagens kurs er 695; fra købsprisen 1.195.
+Break-even fra dagens kurs er 98,05, og maksimalt tab er 9.805.
+
+Strategigrundlag: [OIC covered call](https://www.optionseducation.org/strategies/all-strategies/covered-call-buy-write)
+og [OIC cash-secured put](https://www.optionseducation.org/strategies/all-strategies/cash-secured-put).
+
+### Endpoints og kontrol
+
+- POST /agents/options/calculate — beregning uden AI.
+- POST /agents/options/run — beregning, vurdering og historik.
+- GET /agents/options/history — seneste 50 vurderinger.
+- GET /agents/options/history/{id} — gemt input, beregning og svar.
+
+Kør fra projektets rod i Linux/WSL:
+
+```bash
+.venv/bin/python -m unittest discover -s backend/tests -v
+cd frontend
+npm run lint
+npx tsc --noEmit
+```
+
+Options-tests bruger midlertidige databaser og en simuleret AI. De kontrollerer
+payoffs, dækning, enheder, ugyldige input, fejlhåndtering og adskilt historik.
+De nye tests samt lint/TypeScript skal køres lokalt før sammenfletning.
+
+Manuel kontrol: Indlæs det fiktive eksempel, kontrollér kontraktbekræftelsen og
+tryk Beregn. Kontrollér tallene ovenfor. Prøv derefter AI-vurdering, genindlæs
+siden og genåbn vurderingen fra optionshistorikken. En gemt vurdering kan åbnes
+under en ny kørsel uden at ændre den aktive opgave.

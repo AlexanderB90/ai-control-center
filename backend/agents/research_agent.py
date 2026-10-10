@@ -97,17 +97,20 @@ class ResearchAgent:
             finally:
                 fcntl.flock(lock, fcntl.LOCK_UN)
 
+    def build_prompt(self, task: str):
+        return (
+            'Du er Research Agent. Svar på dansk i ren tekst. '
+            'Besvar opgaven ud fra din eksisterende viden og brugerens tekst. '
+            'Brug ingen værktøjer. Angiv usikkerhed og opfind ikke kilder. '
+            'En fast besked om manglende internetadgang tilføjes automatisk foran dit svar. '
+            'Gentag ikke denne besked i dit svar.\n\n'
+            f'Brugerens opgave:\n{task}'
+        )
+
     def _run(self, task: str):
         with tempfile.TemporaryDirectory(prefix='research-agent-') as directory:
             output = Path(directory) / 'answer.txt'
-            prompt = (
-                'Du er Research Agent. Svar på dansk i ren tekst. '
-                'Besvar opgaven ud fra din eksisterende viden og brugerens tekst. '
-                'Brug ingen værktøjer. Angiv usikkerhed og opfind ikke kilder. '
-                'En fast besked om manglende internetadgang tilføjes automatisk foran dit svar. '
-                'Gentag ikke denne besked i dit svar.\n\n'
-                f'Brugerens opgave:\n{task}'
-            )
+            prompt = self.build_prompt(task)
             try:
                 with tempfile.TemporaryFile() as stdout, tempfile.TemporaryFile() as stderr:
                     process = subprocess.Popen(
