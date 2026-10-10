@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import OptionsPanel from "./OptionsPanel";
 
 type HistoryItem = { id: string; created_at: string; agent: string; version: string; task_excerpt: string };
 type HistoryDetail = { id: string; created_at: string; agent: string; version: string; task: string; response: string };
@@ -160,14 +161,14 @@ export default function Home() {
 
             <StatusCard
               title="Agents"
-              value="1 Active"
+              value="2 Active"
               status="Ready"
               online={true}
             />
 
             <StatusCard
               title="Version"
-              value="v0.3.0"
+              value="v0.4.0"
               status="Development"
               online={true}
             />
@@ -262,16 +263,18 @@ export default function Home() {
                 description="Analyzes stocks, markets and financial data."
               />
 
-              <AgentCard
-                name="Options Specialist"
-                description="Evaluates options strategies, risk and opportunities."
-              />
+              <a href="#options-agent" className="block rounded-xl border border-blue-500/30 bg-zinc-900 p-6 hover:border-blue-500">
+                <h3 className="text-lg font-semibold">Options Agent</h3>
+                <p className="mt-2 text-sm text-zinc-400">Beregn covered calls og cash-secured puts, og få en AI-vurdering.</p>
+                <p className="mt-4 text-sm text-blue-400">Åbn Options Agent ↓</p>
+              </a>
             </div>
           </div>
         </section>
+        <OptionsPanel online={backendOnline} />
         <section className="mt-12 rounded-xl border border-zinc-800 bg-zinc-900 p-6">
           <div className="mb-5 flex items-center justify-between">
-            <h2 className="text-xl font-semibold">Opgavehistorik</h2>
+            <h2 className="text-xl font-semibold">Research-historik</h2>
             <button onClick={refreshHistory} disabled={historyLoading} className="text-sm text-blue-400 disabled:opacity-40">Opdatér historik</button>
           </div>
           <p className="mb-4 text-sm text-zinc-500">De seneste 50 opgaver. Opgaver og svar gemmes lokalt i klartekst.</p>

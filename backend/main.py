@@ -6,10 +6,11 @@ from pydantic import BaseModel, ConfigDict, StringConstraints
 from fastapi.middleware.cors import CORSMiddleware
 from backend.agents.research_agent import AgentError, research_agent
 from backend import history
+from backend.options_routes import router as options_router
 
 app = FastAPI(
     title="AI Control Center API",
-    version="0.3.0"
+    version="0.4.0"
 )
 
 # Tillad vores lokale Next.js-frontend at kommunikere med API'et
@@ -27,7 +28,7 @@ def health_check():
     return {
         "status": "online",
         "service": "AI Control Center",
-        "version": "0.3.0"
+        "version": "0.4.0"
     }
 
 
@@ -66,3 +67,6 @@ def research_history_detail(identifier: str):
     if record is None:
         raise HTTPException(status_code=404, detail='Opgaven blev ikke fundet i historikken.')
     return record
+
+
+app.include_router(options_router)
