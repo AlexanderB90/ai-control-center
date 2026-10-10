@@ -10,7 +10,7 @@ Money = Annotated[Decimal, Field(ge=0, le=1000000000, max_digits=15, decimal_pla
 Price = Annotated[Decimal, Field(gt=0, le=1000000, max_digits=12, decimal_places=4, allow_inf_nan=False)]
 Count = Annotated[int, Field(strict=True, ge=1, le=10000)]
 ZERO = Decimal("0")
-VERSION = "0.1.0"
+VERSION = "0.1.1"
 
 
 def today():
@@ -80,6 +80,7 @@ def calculate(trade: OptionsRequest):
     warnings = [
         "Manuelle data; kurser og præmier er ikke verificeret eller hentet live.",
         "Scenarier gælder ved udløb. De er ikke prognoser eller sandsynligheder.",
+        "Scenariekurser afrundes til to decimaler før beregning. Break-even vises afrundet; resultatet ved den viste kurs kan derfor afvige lidt fra nul.",
         "Skat, valutaændringer, udbytte, renter og tidligere optionspræmier er udeladt.",
         "Gebyrer er dit faste samlede skøn. Faktiske omkostninger og udførelsespris kan afvige.",
         "Førtidig tildeling kan ske for amerikanske optioner. Ved strike er tildeling usikker.",
@@ -112,7 +113,8 @@ def calculate(trade: OptionsRequest):
     if call and breakeven(cost_break_even) is not None:
         prices.add(cost_break_even)
     rows = []
-    for price in sorted(prices):
+    # Calculate at the displayed cent price; deduplicate after rounding.
+    for price in sorted({Decimal(rounded(value)) for value in prices}):
         liability = max(ZERO, price - trade.strike if call else trade.strike - price) * units
         option_pl = net - liability
         total = (price - trade.spot) * units + option_pl if call else option_pl
