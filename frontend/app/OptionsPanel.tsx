@@ -13,7 +13,8 @@ type Calculation = {
   warnings: string[];
   scenarios: { price: string; option_pl: string; total_pl: string; cost_basis_pl: string | null; hold_shares_pl: string | null; assignment: string }[];
 };
-type Result = { calculation: Calculation; response?: string; ai_warning?: string | null; history_warning?: string };
+type WebResearch = { status: string; completed_searches?: number; checked_at?: string; warning?: string; sources: { title: string; url: string }[] };
+type Result = { web?: WebResearch; calculation: Calculation; response?: string; ai_warning?: string | null; history_warning?: string };
 type HistoryItem = { id: string; created_at: string; task_excerpt: string };
 type Saved = { id: string; created_at: string; result: Result };
 const API = "http://localhost:8000/agents/options";
@@ -36,6 +37,7 @@ async function readHistory(): Promise<HistoryItem[]> {
 export default function OptionsPanel({ online }: { online: boolean }) {
   const [fields, setFields] = useState<Fields>(initial);
   const [confirmed, setConfirmed] = useState(false);
+  const [webResearch, setWebResearch] = useState(false);
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<Result | null>(null);
   const [error, setError] = useState("");
@@ -84,7 +86,7 @@ export default function OptionsPanel({ online }: { online: boolean }) {
     setBusy(true); setResult(null); setError("");
     try {
       const payload = {
-        ...fields, symbol: fields.symbol.trim(), source: fields.source.trim(),
+        ...fields, web_research: assess && webResearch, symbol: fields.symbol.trim(), source: fields.source.trim(),
         contracts: Number(fields.contracts), contract_size: Number(fields.contract_size),
         shares_owned: fields.strategy === "covered_call" ? Number(fields.shares_owned) : 0,
         cost_basis: fields.strategy === "covered_call" ? fields.cost_basis : null,
@@ -175,13 +177,18 @@ export default function OptionsPanel({ online }: { online: boolean }) {
           <input className="mt-1" type="checkbox" required checked={confirmed} onChange={e => { setConfirmed(e.target.checked); setResult(null); }} />
           Kontrakten er en ujusteret aktieoption med fysisk levering. Præmien er pr. aktie, og kontraktstørrelsen er kontrolleret. Indeksoptioner, spreads og justerede kontrakter understøttes ikke.
         </label>
+        <label className="flex items-start gap-2 text-sm text-zinc-300 sm:col-span-2 lg:col-span-3">
+          <input className="mt-1" type="checkbox" checked={webResearch}
+            onChange={e => { setWebResearch(e.target.checked); setResult(null); }} />
+          Brug websøgning ved AI-vurdering (eksperimentel). Undersøg regnskab og selskabsnyheder med kilder. Kurser og præmier forbliver manuelle.
+        </label>
         <div className="flex flex-wrap gap-3 sm:col-span-2 lg:col-span-3">
           <button type="submit" value="calculate" disabled={busy || !online} className={buttonClass}>Beregn</button>
           <button type="submit" value="run" disabled={busy || !online} className={buttonClass}>Beregn + AI-vurdering</button>
         </div>
       </fieldset>
     </form>
-    <p className="mt-3 text-xs text-zinc-500">Beregn bruger ingen AI. Beregn + AI-vurdering gemmer input og resultat lokalt. AI-modellen modtager handelsoplysningerne via dit Codex-login.</p>
+    <p className="mt-3 text-xs text-zinc-500">Beregn bruger ingen AI. Beregn + AI-vurdering gemmer input og resultat lokalt. AI-modellen modtager handelsoplysningerne via dit Codex-login. Websøgning bruges kun ved AI-vurdering, når du har valgt det.</p>
     {busy && <p role="status" className="mt-4 text-blue-300">Behandler opgaven… AI-vurdering kan tage op til 120 sekunder.</p>}
     {error && <p role="alert" className="mt-4 text-red-400">{error}</p>}
     {result && <Analysis result={result} />}
@@ -246,6 +253,19 @@ function Analysis({ result }: { result: Result }) {
     <details className="mt-4" open><summary className="cursor-pointer text-sm font-semibold text-amber-300">Forudsætninger og risici</summary>
       <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-zinc-400">{c.warnings.map(w => <li key={w}>{w}</li>)}</ul>
     </details>
+    {result.web && <div className="mt-4 rounded-lg border border-blue-500/30 p-3 text-sm">
+      <p className="font-semibold">{result.web.status === "searched" ? "Websøgning registreret" : "Webvurdering ikke tilgængelig"}</p>
+      {result.web.checked_at && <p className="mt-1 text-xs text-zinc-400">{new Date(result.web.checked_at).toLocaleString("da-DK")} · {result.web.completed_searches} afsluttede søgekald</p>}
+      <p className="mt-2 text-zinc-400">Advarslerne ovenfor gælder beregningsgrundlaget. AI-vurderingen beskriver, hvad research har bekræftet.</p>
+      {result.web.warning && <p className="mt-2 text-amber-300">{result.web.warning}</p>}
+      {result.web.sources.length > 0 && <>
+        <h4 className="mt-3 font-medium">Links fra søgeværktøjet</h4>
+        <ul className="mt-2 space-y-2">{result.web.sources.filter(source => source.url.startsWith("https://")).map(source =>
+          <li key={source.url}><a className="break-words text-blue-400 underline" href={source.url}
+            target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer">{source.title}</a>
+            <p className="break-words text-xs text-zinc-500">{source.url}</p></li>)}</ul>
+      </>}
+    </div>}
     {result.history_warning && <p role="alert" className="mt-3 text-amber-300">{result.history_warning}</p>}
     {result.ai_warning && <p role="alert" className="mt-3 text-amber-300">Beregningen er klar, men AI-vurderingen mangler: {result.ai_warning}</p>}
     {result.response && <div className="mt-5 border-t border-zinc-700 pt-4"><h4 className="font-semibold">AI-vurdering · kontrollér mod tallene ovenfor</h4><p className="mt-3 whitespace-pre-wrap break-words text-sm leading-6 text-zinc-300">{result.response}</p></div>}

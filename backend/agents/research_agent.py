@@ -107,6 +107,18 @@ class ResearchAgent:
             f'Brugerens opgave:\n{task}'
         )
 
+    def build_command(self, output: Path):
+        return command(output)
+
+    def build_environment(self):
+        return process_environment()
+
+    def inspect_output(self, stdout):
+        return {}
+
+    def format_response(self, answer: str):
+        return f'{NOTICE}\n\n{answer}'
+
     def _run(self, task: str):
         with tempfile.TemporaryDirectory(prefix='research-agent-') as directory:
             output = Path(directory) / 'answer.txt'
@@ -114,8 +126,8 @@ class ResearchAgent:
             try:
                 with tempfile.TemporaryFile() as stdout, tempfile.TemporaryFile() as stderr:
                     process = subprocess.Popen(
-                        command(output), stdin=subprocess.PIPE, stdout=stdout,
-                        stderr=stderr, cwd=directory, env=process_environment(),
+                        self.build_command(output), stdin=subprocess.PIPE, stdout=stdout,
+                        stderr=stderr, cwd=directory, env=self.build_environment(),
                         start_new_session=True, shell=False,
                     )
                     try:
@@ -132,6 +144,8 @@ class ResearchAgent:
                         error_text = stderr.read().decode('utf-8', errors='replace')
                         log_failure(process.returncode, error_text)
                         raise failure_message(error_text)
+                    stdout.seek(0)
+                    metadata = self.inspect_output(stdout)
             except FileNotFoundError:
                 raise AgentError('Codex CLI blev ikke fundet. Installér Codex og sørg for, at codex findes i backendens PATH.', 503)
             except OSError:
@@ -142,7 +156,7 @@ class ResearchAgent:
             if not answer:
                 raise AgentError('Codex afsluttede uden et agentsvar.')
             return {'agent': self.name, 'version': self.version, 'status': 'success',
-                    'task': task, 'response': f'{NOTICE}\n\n{answer}'}
+                    'task': task, 'response': self.format_response(answer), **metadata}
 
 
 research_agent = ResearchAgent()
