@@ -5,6 +5,7 @@ from fastapi import APIRouter, HTTPException
 from backend import history
 from backend.options import OptionsRequest, calculate
 from backend.agents.options_agent import options_agent
+from backend.agents.options_web_agent import options_web_agent
 from backend.agents.research_agent import AgentError
 
 router = APIRouter(prefix="/agents/options")
@@ -18,17 +19,23 @@ def calculate_options(request: OptionsRequest):
 @router.post("/run")
 def assess_options(request: OptionsRequest):
     calculation = calculate(request)
-    result = {"agent": options_agent.name, "version": options_agent.version,
+    agent = options_web_agent if request.web_research else options_agent
+    result = {"agent": agent.name, "version": agent.version,
               "status": "success", "calculation": calculation, "response": "",
               "ai_warning": None}
     try:
-        result["response"] = options_agent.run(json.dumps(calculation, ensure_ascii=False))["response"]
+        assessment = agent.run(json.dumps(calculation, ensure_ascii=False))
+        result["response"] = assessment["response"]
+        if request.web_research:
+            result["web"] = assessment["web"]
     except AgentError as error:
         result["status"] = "calculation_only"
         result["ai_warning"] = str(error)
+        if request.web_research:
+            result["web"] = {"status": "unavailable", "sources": []}
     title = f"{request.symbol.upper()} · {request.strategy} · strike {request.strike} · {request.expiry}"
     try:
-        history.save(title, json.dumps(result, ensure_ascii=False), options_agent.name, options_agent.version)
+        history.save(title, json.dumps(result, ensure_ascii=False), agent.name, agent.version)
     except (sqlite3.Error, OSError):
         result["history_warning"] = history.SAVE_WARNING
     return result

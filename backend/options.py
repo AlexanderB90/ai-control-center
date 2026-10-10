@@ -19,6 +19,7 @@ def today():
 
 class OptionsRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
+    web_research: Annotated[bool, Field(strict=True)] = False
     strategy: Literal["covered_call", "cash_secured_put"]
     symbol: Annotated[str, Field(min_length=1, max_length=24, pattern=r"^[A-Za-z0-9.\-]+$")]
     currency: Literal["USD", "DKK", "EUR", "GBP"]

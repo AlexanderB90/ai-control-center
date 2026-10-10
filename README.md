@@ -214,3 +214,46 @@ Manuel kontrol: Indlæs det fiktive eksempel, kontrollér kontraktbekræftelsen 
 tryk Beregn. Kontrollér tallene ovenfor. Prøv derefter AI-vurdering, genindlæs
 siden og genåbn vurderingen fra optionshistorikken. En gemt vurdering kan åbnes
 under en ny kørsel uden at ændre den aktive opgave.
+
+## Valgfri websøgning i Options Agent v0.2
+
+Vælg **Brug websøgning ved AI-vurdering**, og tryk **Beregn + AI-vurdering**.
+Standardvalget er fortsat uden web. Beregn-knappen foretager ingen søgning.
+Research Agent er fortsat uden web.
+
+Webtilvalget bruger Codex med live-søgning, Code Mode og den medfølgende
+code-mode-host. Konfigurationen er afprøvet i en lokal søgetest med Codex
+0.162.1 på Ubuntu/WSL. Code Mode og standalone search er eksperimentelle.
+Hjælpeprogrammets mappe findes ved at følge codex-binærens symlink.
+Shell-, app-, plugin-, browser- og fleragentværktøjer er stadig deaktiveret;
+read-only sandbox, fælles lås, 120 sekunders timeout og ingen provider-retries
+bevares. Code Mode udvider værktøjsmiljøet i webtilvalget.
+
+AI'en instrueres i at undersøge officielle selskabskilder og begivenheder
+frem mod udløb, give URL'er og skelne mellem bekræftede oplysninger og estimater.
+Den instrueres i kun at bruge selskab/ticker og relevante datoer i søgninger,
+ikke private beholdnings- eller kontantbeløb. AI-modellen modtager fortsat
+hele analysens input som ved den eksisterende vurdering.
+
+Backend kræver mindst én afsluttet web_search-hændelse fra CLI'en.
+Et svar eller en URL i modelteksten alene er ikke nok.
+Ved manglende søgehændelser eller en fatal kørselsfejl vises beregningen
+med advarsel, uden at et almindeligt AI-svar præsenteres som webresearch.
+En afsluttet søgehændelse garanterer ikke, at alle påstande er korrekte.
+
+Strukturerede kilde-URL'er fra søgeværktøjet vises som links, når CLI'en
+leverer dem. Listen er søgeresultater og ikke nødvendigvis de kilder,
+AI'en faktisk citerer. Hvis listen mangler, vises en advarsel og kilderne
+må kontrolleres i svaret. Rå CLI-logs gemmes eller vises ikke.
+Søgestatus, tidspunkt og kildeoversigt gemmes sammen med vurderingen.
+
+Websøgning leverer ikke et verificeret markedsdatafeed og ændrer ikke
+handelsinput eller beregnede beløb. pandas/yfinance og Saxo-integration
+er ikke tilføjet. Gamle historikposter er uændrede.
+
+Lokal kontrol efter opdatering:
+1. Kør backendtests, frontend lint og TypeScript som ovenfor.
+2. Start python3 dev.py, vælg webtilvalget og gennemfør en optionsvurdering.
+3. Kontrollér webstatus, kilder og uændrede beregnede beløb.
+4. Genindlæs og åbn historikken; webstatus og kilder skal være bevaret.
+5. Fravælg web og kontrollér, at den almindelige vurdering stadig virker.
