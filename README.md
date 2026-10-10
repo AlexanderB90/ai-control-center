@@ -171,6 +171,10 @@ Ved udløbskurs S og strike K:
 - Cash-secured put: P − max(K − S, 0) × N.
 - Covered call viser også resultat fra den oplyste købspris samt aktier uden call.
 - Break-even vises kun, hvis den kan nås på payoff-kurven.
+- Fra beregningsversion 0.1.1 afrundes scenariekurser til to decimaler før
+  resultatberegning, så resultatet svarer til den viste kurs. Break-even er
+  fortsat afrundet og kan derfor give et lille plus/minus ved den viste kurs.
+  Eksisterende historik er uændrede snapshots; rettelsen gælder nye beregninger.
 - Cash-secured puts kræver frie kontanter på mindst K × N + gebyrer;
   den forventede præmie tælles ikke som forhåndsdækning.
 - Kun de kontraktdækkede aktier medregnes. Maksimalt tab inkluderer kursfald til nul.
