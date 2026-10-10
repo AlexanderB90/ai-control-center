@@ -257,3 +257,40 @@ Lokal kontrol efter opdatering:
 3. Kontrollér webstatus, kilder og uændrede beregnede beløb.
 4. Genindlæs og åbn historikken; webstatus og kilder skal være bevaret.
 5. Fravælg web og kontrollér, at den almindelige vurdering stadig virker.
+
+## Chatbaseret arbejdsrum
+
+Forsiden bruger nu samtaler frem for agentkort og beregnerformularer.
+Vælg Assistent, Research Agent eller Options Agent, skriv frit, og følg op
+i samme samtale. Forslag på startsiden udfylder skrivefeltet, men sender ikke.
+Enter sender; Shift+Enter giver ny linje. Menuen kan åbnes på mobil.
+Websøgning er et eksplicit tilvalg for den næste besked.
+
+POST /chat/run modtager agent, web_research og messages med user/assistant-roller.
+Kun 1–20 beskeder med højst 10.000 tegn hver og samlet 40.000 tegn accepteres.
+Frontend sender højst de seneste 19 beskeder inden for denne grænse.
+Rollefølgen valideres, og systembeskeder fra klienten accepteres ikke.
+Chat bruger den eksisterende begrænsede Codex-runner og fælles kørselslås.
+Ingen automatisk genkørsel ved fejl; teksten gendannes i skrivefeltet.
+
+Optionschatten er fri samtale og kalder ikke beregningsmotoren.
+Den instrueres i ikke at præsentere modelberegninger som Python-verificerede.
+Der er ingen automatisk delegation, stemmefunktion eller adgang til øvrige samtaler.
+De eksisterende beregningsendpoints og tests er bevaret.
+
+Samtaler gemmes i klartekst i browserens localStorage, nøgle
+ai-control-center.chats.v1, højst 50 samtaler og de seneste 40 beskeder pr. samtale.
+Lagringen er knyttet til browserprofil og origin (localhost og 127.0.0.1 er forskellige).
+Det er ikke serverbaseret synkronisering eller en permanent vidensbase.
+Fejl ved lagring giver en advarsel. Ufuldstændige svarforløb gemmes ikke som
+afsluttede samtalebeskeder. Chattekst og det valgte samtaleudsnit sendes til
+AI-modellen via Codex. Slet samtale fjerner kun den pågældende browserhistorik.
+
+Tidligere analyser i SQLite kan åbnes fra sidepanelet. De ændres ikke.
+Gamle optionsberegninger findes under Vis gemte beregningsdata i arkivet.
+Chatten læser ikke automatisk arkivet som kontekst.
+
+Kontrollér med backendtests, frontend lint og TypeScript. Manuel kontrol:
+start en optionschat uden formular, stil et opfølgende spørgsmål, genindlæs,
+og genåbn samtalen. Skift agent og opret en separat samtale. Prøv webtilvalget
+og gamle analyser. Kontrollér mobilmenu og at fejl gendanner brugerens tekst.
