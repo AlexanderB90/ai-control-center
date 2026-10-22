@@ -41,7 +41,7 @@ Repoet indeholder en begrænset filtype-/tokenkontrol, **ikke** en fuldstændig 
 
 ```bash
 python3 scripts/security_scan.py            # kontrollér Git-tracked filer
-git config core.hooksPath .githooks          # aktiver lokal pre-commit-kontrol
+mkdir -p .git/hooks\ncp .githooks/pre-commit .git/hooks/pre-commit\nchmod +x .git/hooks/pre-commit        # aktiver lokal pre-commit-kontrol
 ```
 
 GitHub Actions gentager kontrollen på push og PR. Brug også GitHub secret scanning/push protection, hvis tilgængeligt, og en professionel secret-scanner inden indførelse af følsomt udviklingsarbejde. En CI-kontrol kører først **efter** et push og kan derfor ikke alene forhindre eksponering.
