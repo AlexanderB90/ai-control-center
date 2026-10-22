@@ -2,6 +2,7 @@ import asyncio
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from pathlib import Path
+import os
 import sqlite3
 import tempfile
 import unittest
@@ -131,6 +132,9 @@ class CalculationTests(unittest.TestCase):
 
 class OptionsEndpointTests(unittest.TestCase):
     def setUp(self):
+        env = patch.dict(os.environ, {'AIC_EXTERNAL_AI_ENABLED': '1'})
+        env.start()
+        self.addCleanup(env.stop)
         temporary = tempfile.TemporaryDirectory()
         self.addCleanup(temporary.cleanup)
         database = patch("backend.history.DATABASE_PATH", Path(temporary.name)/"history.sqlite3")
