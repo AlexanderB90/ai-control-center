@@ -1,8 +1,9 @@
 """Options calculations, assessments and agent-scoped history."""
 import json
 import sqlite3
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from backend import history
+from backend.external_ai_policy import require_external_ai_approval
 from backend.options import OptionsRequest, calculate
 from backend.agents.options_agent import options_agent
 from backend.agents.research_agent import AgentError
@@ -16,7 +17,7 @@ def calculate_options(request: OptionsRequest):
 
 
 @router.post("/run")
-def assess_options(request: OptionsRequest):
+def assess_options(request: OptionsRequest, _approval: None = Depends(require_external_ai_approval)):
     calculation = calculate(request)
     result = {"agent": options_agent.name, "version": options_agent.version,
               "status": "success", "calculation": calculation, "response": "",
