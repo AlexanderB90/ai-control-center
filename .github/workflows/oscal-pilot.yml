@@ -1,0 +1,46 @@
+name: OSCAL Pilot (synthetic only)
+
+on:
+  push:
+    branches: [feature/oscal-compass-trestle-pilot-20261022]
+  pull_request:
+    paths:
+      - "scripts/oscal_pilot.py"
+      - "backend/tests/test_oscal_pilot.py"
+      - ".github/workflows/oscal-pilot.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate-synthetic-oscal:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run synthetic offline unit tests
+        run: python -m unittest discover -s backend/tests -p 'test_oscal_pilot.py' -v
+      - name: Install Compliance Trestle
+        run: |
+          python -m pip install --disable-pip-version-check compliance-trestle
+          trestle version
+      - name: Validate generated synthetic catalogs and mapping with real Trestle
+        run: python scripts/oscal_pilot.py --out "${RUNNER_TEMP}/cyberagent-oscal-pilot" --trestle-validate
+      - name: Check OSCAL Compass ingest stage with pinned upstream revision
+        env:
+          COMPASS_REVISION: 064a1c0f6cf420e1b0e8a7f02b11c9c5819691fd
+        run: |
+          git clone --quiet --filter=blob:none https://github.com/oscal-compass/agentic-agile-authoring.git "${RUNNER_TEMP}/oscal-compass"
+          git -C "${RUNNER_TEMP}/oscal-compass" checkout --quiet "${COMPASS_REVISION}"
+          IN="${RUNNER_TEMP}/cyberagent-oscal-pilot/catalogs"
+          OUT="${RUNNER_TEMP}/cyberagent-oscal-pilot/work"
+          mkdir -p "${OUT}"
+          SCRIPT="${RUNNER_TEMP}/oscal-compass/skills/compliance-mapping/scripts/ingest_normalize.py"
+          python "${SCRIPT}" "${IN}/nis2/catalog.json" "${OUT}/nis2.json"
+          python "${SCRIPT}" "${IN}/iso27002/catalog.json" "${OUT}/iso27002.json"
+          python -c 'import json,os; from pathlib import Path; p=Path(os.environ["RUNNER_TEMP"])/"cyberagent-oscal-pilot/work"; assert len(json.loads((p/"nis2.json").read_text())["controls"])==3; assert len(json.loads((p/"iso27002.json").read_text())["controls"])==10; print("OSCAL Compass ingest count: 3 NIS2, 10 ISO controls")'

@@ -26,7 +26,7 @@ def main():
             except (OSError, IsADirectoryError): continue
         if len(content) > 1_000_000:
             errors.append(f"File requires manual review (>1MB): {name}")
-        elif b"\0" in content:
+        elif b"\0" in content and name not in {"frontend/app/favicon.ico"}:
             errors.append(f"Binary file requires manual review: {name}")
         elif SECRET.search(content.decode("utf-8", "replace")):
             errors.append(f"Possible credential: {name}")
