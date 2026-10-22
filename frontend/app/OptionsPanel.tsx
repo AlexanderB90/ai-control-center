@@ -36,6 +36,7 @@ async function readHistory(): Promise<HistoryItem[]> {
 export default function OptionsPanel({ online }: { online: boolean }) {
   const [fields, setFields] = useState<Fields>(initial);
   const [confirmed, setConfirmed] = useState(false);
+  const [externalApproved, setExternalApproved] = useState(false);
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<Result | null>(null);
   const [error, setError] = useState("");
@@ -62,7 +63,7 @@ export default function OptionsPanel({ online }: { online: boolean }) {
 
   function edit(key: keyof Fields, value: string) {
     setFields(current => ({ ...current, [key]: value }));
-    setResult(null); setError("");
+    setResult(null); setError(""); setExternalApproved(false);
   }
 
   function example() {
@@ -74,13 +75,15 @@ export default function OptionsPanel({ online }: { online: boolean }) {
       fees: "5", shares_owned: "100", cost_basis: "95", cash_available: "11000",
       expiry: future.toISOString().slice(0, 10), quote_at: local,
       source: "Fiktivt regneeksempel – ikke markedsdata" });
-    setConfirmed(false); setResult(null); setError("");
+    setConfirmed(false); setResult(null); setError(""); setExternalApproved(false);
   }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (busy) return;
     const assess = (event.nativeEvent as SubmitEvent).submitter?.getAttribute("value") === "run";
+    if (assess && !externalApproved) { setError("Godkend datadeling før ekstern AI-vurdering."); return; }
+    if (assess) setExternalApproved(false);
     setBusy(true); setResult(null); setError("");
     try {
       const payload = {
@@ -92,7 +95,7 @@ export default function OptionsPanel({ online }: { online: boolean }) {
         quote_at: new Date(fields.quote_at).toISOString(), standard_contract: confirmed,
       };
       const response = await fetch(API + (assess ? "/run" : "/calculate"), {
-        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload),
+        method: "POST", headers: { "Content-Type": "application/json", ...(assess ? { "X-External-AI-Approved": "true" } : {}) }, body: JSON.stringify(payload),
       });
       const body = await response.json();
       if (!response.ok) {
@@ -175,9 +178,10 @@ export default function OptionsPanel({ online }: { online: boolean }) {
           <input className="mt-1" type="checkbox" required checked={confirmed} onChange={e => { setConfirmed(e.target.checked); setResult(null); }} />
           Kontrakten er en ujusteret aktieoption med fysisk levering. Præmien er pr. aktie, og kontraktstørrelsen er kontrolleret. Indeksoptioner, spreads og justerede kontrakter understøttes ikke.
         </label>
+        <label className="flex items-start gap-2 text-sm text-amber-300 sm:col-span-2 lg:col-span-3"><input type="checkbox" checked={externalApproved} onChange={e => setExternalApproved(e.target.checked)} />Jeg godkender at sende denne beregning til ekstern Codex/ChatGPT. Oplysningerne indeholder ingen fortrolige data.</label>
         <div className="flex flex-wrap gap-3 sm:col-span-2 lg:col-span-3">
           <button type="submit" value="calculate" disabled={busy || !online} className={buttonClass}>Beregn</button>
-          <button type="submit" value="run" disabled={busy || !online} className={buttonClass}>Beregn + AI-vurdering</button>
+          <button type="submit" value="run" disabled={busy || !online || !externalApproved} className={buttonClass}>Beregn + AI-vurdering</button>
         </div>
       </fieldset>
     </form>

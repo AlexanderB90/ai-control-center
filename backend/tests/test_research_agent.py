@@ -168,13 +168,16 @@ async def request(method, path, body=None):
         messages.append(message)
     await app({'type': 'http', 'asgi': {'version': '3.0'}, 'http_version': '1.1',
                'method': method, 'scheme': 'http', 'path': path, 'raw_path': path.encode(),
-               'query_string': b'', 'headers': [(b'content-type', b'application/json')],
+               'query_string': b'', 'headers': [(b'content-type', b'application/json'), (b'x-external-ai-approved', b'true')],
                'client': ('127.0.0.1', 1), 'server': ('127.0.0.1', 8000)}, receive, send)
     return messages[0]['status'], json.loads(b''.join(m.get('body', b'') for m in messages[1:]))
 
 
 class EndpointTests(unittest.TestCase):
     def setUp(self):
+        env = patch.dict(os.environ, {'AIC_EXTERNAL_AI_ENABLED': '1'})
+        env.start()
+        self.addCleanup(env.stop)
         temporary = tempfile.TemporaryDirectory()
         self.addCleanup(temporary.cleanup)
         database = patch('backend.history.DATABASE_PATH', Path(temporary.name) / 'data' / 'history.sqlite3')

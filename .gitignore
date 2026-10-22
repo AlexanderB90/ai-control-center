@@ -42,3 +42,23 @@ compose.override.yml
 
 # Local Research Agent execution lock
 backend/.research-agent.lock
+
+# Confidential materials: keep outside repository entirely
+vault/
+knowledge-base/
+evidence/
+assessments/
+documents/
+confidential/
+secrets/
+*.pdf
+*.doc
+*.docx
+*.xls
+*.xlsx
+*.ppt
+*.pptx
+*.zip
+*.7z
+*.p12
+*.pfx

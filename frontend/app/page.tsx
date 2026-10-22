@@ -15,6 +15,7 @@ async function fetchHistory(): Promise<HistoryItem[]> {
 export default function Home() {
   const [backendOnline, setBackendOnline] = useState(false);
   const [researchTask, setResearchTask] = useState("");
+  const [externalApproved, setExternalApproved] = useState(false);
   const [researchResult, setResearchResult] = useState("");
   const [researchRunning, setResearchRunning] = useState(false);
   const [historyWarning, setHistoryWarning] = useState("");
@@ -81,6 +82,8 @@ export default function Home() {
       return;
     }
 
+    if (!externalApproved) return;
+    setExternalApproved(false);
     setResearchRunning(true);
     setResearchResult("");
     setHistoryWarning("");
@@ -90,7 +93,7 @@ export default function Home() {
         "http://localhost:8000/agents/research/run",
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", "X-External-AI-Approved": "true" },
           body: JSON.stringify({ task: researchTask.trim() }),
         }
       );
@@ -219,11 +222,12 @@ export default function Home() {
               <textarea
                 maxLength={10000}
                 value={researchTask}
-                onChange={(event) => setResearchTask(event.target.value)}
+                onChange={(event) => { setResearchTask(event.target.value); setExternalApproved(false); }}
                 placeholder="Give Research Agent a task, e.g. Analyze Netflix..."
                 className="min-h-28 w-full resize-none rounded-lg border border-zinc-700 bg-zinc-950 p-4 text-sm text-white outline-none transition placeholder:text-zinc-600 focus:border-blue-500"
               />
 
+              <label className="mt-4 flex items-start gap-2 text-sm text-amber-300"><input type="checkbox" checked={externalApproved} onChange={e => setExternalApproved(e.target.checked)} />Jeg godkender at sende denne opgavetekst til ekstern Codex/ChatGPT. Den indeholder ingen fortrolige oplysninger, arbejdsrelaterede persondata eller hemmeligheder.</label>
               <div className="mt-4 flex items-center justify-between">
                 <p className="text-xs text-zinc-500">
                   Codex/ChatGPT via lokal FastAPI
@@ -234,6 +238,7 @@ export default function Home() {
                   disabled={
                     researchRunning ||
                     !researchTask.trim() ||
+                    !externalApproved ||
                     !backendOnline
                   }
                   className="rounded-lg bg-blue-600 px-5 py-2 text-sm font-medium transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-40"
