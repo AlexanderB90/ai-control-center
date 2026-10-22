@@ -1,0 +1,39 @@
+name: NIS2 ten-area Compass retrieval benchmark
+on:
+  push:
+    branches: [test/oscal-ten-nis2-areas-20261022]
+permissions:
+  contents: read
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Generate synthetic catalogues
+        run: python scripts/oscal_ten_area_benchmark.py --out "${RUNNER_TEMP}/ten-areas"
+      - name: Install embedding dependencies
+        run: python -m pip install sentence-transformers numpy
+      - name: Real OSCAL Compass Stage 1 and 3
+        env:
+          COMPASS_REV: 064a1c0f6cf420e1b0e8a7f02b11c9c5819691fd
+        run: |
+          git clone --quiet --filter=blob:none https://github.com/oscal-compass/agentic-agile-authoring.git "${RUNNER_TEMP}/compass"
+          git -C "${RUNNER_TEMP}/compass" checkout --quiet "${COMPASS_REV}"
+          DIR="${RUNNER_TEMP}/compass/skills/compliance-mapping/scripts"
+          IN="${RUNNER_TEMP}/ten-areas/catalogs"
+          OUT="${RUNNER_TEMP}/ten-areas"
+          python "${DIR}/ingest_normalize.py" "${IN}/iso-expanded/catalog.json" "${OUT}/source.json"
+          python "${DIR}/ingest_normalize.py" "${IN}/nis2-ten/catalog.json" "${OUT}/target.json"
+          python "${DIR}/blocking.py" "${OUT}/source.json" "${OUT}/target.json" --k 10 --output "${OUT}/candidates.json" --cache "${OUT}/embedding-cache.json"
+          python scripts/oscal_ten_area_benchmark.py --out "${OUT}" --candidates "${OUT}/candidates.json"
+          cp "${OUT}/benchmark-results.json" "${GITHUB_WORKSPACE}/benchmark-results.json"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ten-area-oscal-benchmark
+          path: benchmark-results.json
