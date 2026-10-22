@@ -1,5 +1,8 @@
 # AI Control Center
 
+> **Sikkerhed:** Dette GitHub-repository er offentligt. Det må ikke bruges til følsomme dokumenter. Se [SECURITY.md](SECURITY.md). Eksterne AI-kald er som standard blokeret og kræver både administratoraktivering og aktiv godkendelse for hvert kald. Må ikke anvendes til interne regionale data uden særskilt godkendt miljø.
+
+
 Private self-hosted AI agent platform.
 
 ## Vision
