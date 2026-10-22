@@ -1,11 +1,12 @@
 from typing import Annotated
 import sqlite3
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends
 from pydantic import BaseModel, ConfigDict, StringConstraints
 from fastapi.middleware.cors import CORSMiddleware
 from backend.agents.research_agent import AgentError, research_agent
 from backend import history
+from backend.external_ai_policy import require_external_ai_approval
 from backend.options_routes import router as options_router
 
 app = FastAPI(
@@ -38,7 +39,7 @@ class ResearchRequest(BaseModel):
 
 
 @app.post("/agents/research/run")
-def run_research_agent(request: ResearchRequest):
+def run_research_agent(request: ResearchRequest, _approval: None = Depends(require_external_ai_approval)):
     try:
         result = research_agent.run(request.task)
     except AgentError as error:
